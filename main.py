@@ -1,8 +1,6 @@
-" " "
-🎯 TIRANGA GAMES VIP BOT v3.1 - TREND ANALYSIS ENGINE
-Features: 100% Real API Sync | Smart Trend Analysis | Strict 3-Level System
-         | Auto Key Expiry | Consolidated Sync Dashboard | Cloud-Ready
-"""
+# 🎯 TIRANGA GAMES VIP BOT v3.1 - TREND ANALYSIS ENGINE
+# Features: 100% Real API Sync | Smart Trend Analysis | Strict 3-Level System
+#          | Auto Key Expiry | Consolidated Sync Dashboard | Cloud-Ready
 
 import telebot
 import random
@@ -464,10 +462,10 @@ def handle_cb(call):
         text = (
             f"🎯 *LIVE PREDICTION*\n━━━━━━━━━━━━━━━━━━━━\n"
             f"📋 *Period* : `{res['period']}`\n"
-            f"⚖️ *SIZE*   : {EMOJI[res['size']]} *{res['size'].upper()}*\n"
+            f"⚖️ *SIZE* : {EMOJI[res['size']]} *{res['size'].upper()}*\n"
             f"🔢 *NUMBER* : *{res['number']}*\n"
             f"🔥 *ACCURACY* : `{res['accuracy']}%`\n"
-            f"🏆 *LEVEL*  : {level_label}\n"
+            f"🏆 *LEVEL* : {level_label}\n"
             f"{level_note}\n"
             f"━━━━━━━━━━━━━━━━━━━━"
         )

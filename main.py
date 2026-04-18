@@ -126,18 +126,21 @@ def analyze_size_trend():
 def predict_exact_number(history_data, predicted_size):
     """ 
     12 April Stable Number Logic (Target: 4-Level Win)
-    Fixed Arguments for core_engine_loop
+    Fixed: Number will strictly match the Predicted Size
     """
-    # अगर डेटा नहीं आया है तो सेफ रैंडम नंबर
+    # 1. Size के हिसाब से सही नंबर्स का ग्रुप फिक्स करो
+    valid_nums = [5, 6, 7, 8, 9] if predicted_size == "Big" else [0, 1, 2, 3, 4]
+
+    # 2. अगर डेटा नहीं आया है तो सेफ रैंडम नंबर (उसी साइज का)
     if not history_data or len(history_data) < 10:
-        return random.choice([0, 1, 2, 3, 4, 5, 6, 7, 8, 9])
+        return random.choice(valid_nums)
 
     # पिछले 20 पीरियड्स के नंबर्स निकालना
     recent_nums = [int(x['number']) for x in history_data[:20]]
     
-    # फ्रीक्वेंसी चेक (कौन सा नंबर ट्रेंड में है)
+    # फ्रीक्वेंसी चेक (सिर्फ valid_nums में से कौन सा नंबर ट्रेंड में है)
     counts = {}
-    for n in range(10):
+    for n in valid_nums:
         counts[n] = recent_nums.count(n)
         
     # सबसे ज्यादा बार आने वाले नंबर्स को सॉर्ट करना

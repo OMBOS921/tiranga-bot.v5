@@ -81,97 +81,55 @@ def fetch_real_api():
     global real_history_cache
     try:
         ts = int(time.time() * 1000)
-        # URL में pageSize=800 और pageNo=1 पास कर दिया है 
-        r = api_session.get(f"{PUBLIC_API_URL}?pageSize=800&pageNo=1&ts={ts}", timeout=5)
+        # 13 April के कोड के लिए सिर्फ 30 रिज़ल्ट्स काफी हैं (0 Second Delay)
+        r = api_session.get(f"{PUBLIC_API_URL}?pageSize=30&pageNo=1&ts={ts}", timeout=5)
         if r.status_code == 200:
             data = r.json()
             if "data" in data and "list" in data["data"]:
-                # 800 रिज़ल्ट्स को निकाल कर सेव करना
-                real_history_cache = data["data"]["list"][:800] 
+                real_history_cache = data["data"]["list"][:30]
     except: pass
 
 def analyze_size_trend():
     """ 
-    800 Results Markov Engine + All 7 Patterns (Ultimate Accuracy)
+    Aggressive 13 April Logic (Never Skips, Always Plays)
     """
     global real_history_cache
     
     if not real_history_cache or len(real_history_cache) < 10:
         return random.choice(["Big", "Small"])
 
-    # 800 रिजल्ट्स का डेटा उठाना
-    sizes = ["Big" if int(x['number']) >= 5 else "Small" for x in real_history_cache[:800]]
-    recent = sizes[:10]
+    sizes = ["Big" if int(x['number']) >= 5 else "Small" for x in real_history_cache[:10]]
     
-    # --- ALL 7 PATTERNS (Wingo Engine) ---
-    # PATTERN 1: DRAGON / STREAK
-    if recent[0] == recent[1] and recent[1] == recent[2]:
-        return recent[0]
-
-    # PATTERN 2: ZIG-ZAG 
-    if recent[0] != recent[1] and recent[1] != recent[2] and recent[2] != recent[3]:
-        return "Big" if recent[0] == "Small" else "Small"
-
-    # PATTERN 3: 2-2 BLOCK 
-    if recent[0] == recent[1] and recent[1] != recent[2] and recent[2] == recent[3]:
-        return "Big" if recent[0] == "Small" else "Small"
-
-    # PATTERN 4: MIRROR PATTERN
-    if recent[0] == recent[3] and recent[1] == recent[2] and recent[0] != recent[1]:
-        return "Big" if recent[0] == "Small" else "Small"
-
-    # PATTERN 5: SANDWICH 
-    if recent[0] == recent[1] and recent[1] != recent[2]:
-        return recent[2]
-
-    # PATTERN 6: 3-1 BREAK 
-    if recent[1] == recent[2] and recent[2] == recent[3] and recent[0] != recent[1]:
-        return recent[0]
-
-    # 🚀 MARKOV CHAIN (800 Data Points Fallback)
-    b2b, b2s, s2b, s2s = 0, 0, 0, 0
-    limit = min(800, len(sizes))
-    for i in range(limit - 1):
-        if sizes[i+1] == "Big":
-            if sizes[i] == "Big": b2b += 1
-            else: b2s += 1
-        else:
-            if sizes[i] == "Big": s2b += 1
-            else: s2s += 1
-
-    if recent[0] == "Big":
-        return "Big" if b2b >= b2s else "Small"
-    else:
-        return "Big" if s2b >= s2s else "Small"
+    # 13 April Pattern Logic
+    if sizes[0] == sizes[1] and sizes[1] == sizes[2]: return sizes[0]
+    if sizes[0] != sizes[1] and sizes[1] != sizes[2] and sizes[2] != sizes[3]: return "Big" if sizes[0] == "Small" else "Small"
+    if sizes[0] == sizes[1] and sizes[1] != sizes[2] and sizes[2] == sizes[3]: return "Big" if sizes[0] == "Small" else "Small"
+    
+    # Aggressive Random Fallback (Like your bot v12.0)
+    return "Big" if sizes[:5].count("Big") >= 3 else "Small"
 
 def predict_exact_number(history_data, predicted_size):
     """ 
-    800 Results Markov Engine for Numbers
+    Aggressive 13 April Number Logic (No Skips)
+    Strictly follows Predicted Size
     """
     valid_nums = [5, 6, 7, 8, 9] if predicted_size == "Big" else [0, 1, 2, 3, 4]
+
     if not history_data or len(history_data) < 10:
         return random.choice(valid_nums)
 
-    nums = [int(x['number']) for x in history_data[:800]]
-    last_num = nums[0]
+    # पिछले 20 रिजल्ट्स में सबसे ज्यादा आने वाले नंबर चेक करेगा
+    recent_nums = [int(x['number']) for x in history_data[:20]]
     
-    # 🚀 NUMBER MARKOV (800 Results)
-    transition_counts = {n: 0 for n in valid_nums}
-    limit = min(800, len(nums))
-    for i in range(limit - 1):
-        if nums[i+1] == last_num and nums[i] in valid_nums:
-            transition_counts[nums[i]] += 1
-
-    sorted_nums = sorted(valid_nums, key=lambda n: transition_counts[n], reverse=True)
-
-    # Fallback if no transition data
-    if transition_counts[sorted_nums[0]] == 0:
-        freq = {n: nums.count(n) for n in valid_nums}
-        sorted_nums = sorted(valid_nums, key=lambda n: freq[n], reverse=True)
-
-    # Safety Check: Recent numbers skip
+    counts = {}
+    for n in valid_nums:
+        counts[n] = recent_nums.count(n)
+        
+    sorted_nums = sorted(counts.keys(), key=lambda n: counts[n], reverse=True)
+    
+    # 2-Level Safety: जो नंबर अभी तुरंत आया है उसे अवॉयड करेगा
     for num in sorted_nums:
-        if num not in nums[:2]:
+        if num not in recent_nums[:2]:
             return num
             
     return sorted_nums[0]
@@ -373,4 +331,4 @@ if __name__ == "__main__":
     threading.Thread(target=ai_learning_loop, daemon=True).start()
     keep_alive()
     bot.polling(none_stop=True)
-                
+    

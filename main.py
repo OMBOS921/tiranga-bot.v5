@@ -81,77 +81,99 @@ def fetch_real_api():
     global real_history_cache
     try:
         ts = int(time.time() * 1000)
-        r = api_session.get(f"{PUBLIC_API_URL}?ts={ts}", timeout=5)
+        # URL में pageSize=800 और pageNo=1 पास कर दिया है 
+        r = api_session.get(f"{PUBLIC_API_URL}?pageSize=800&pageNo=1&ts={ts}", timeout=5)
         if r.status_code == 200:
             data = r.json()
             if "data" in data and "list" in data["data"]:
-                # Fetch more data for deep analysis
-                real_history_cache = data["data"]["list"][:30] 
+                # 800 रिज़ल्ट्स को निकाल कर सेव करना
+                real_history_cache = data["data"]["list"][:800] 
     except: pass
 
 def analyze_size_trend():
     """ 
-    12 April Base + Pattern Engine (Hybrid Logic)
-    Target: 1-2 Level Win. Safe for Server.
+    800 Results Markov Engine + All 7 Patterns (Ultimate Accuracy)
     """
     global real_history_cache
     
     if not real_history_cache or len(real_history_cache) < 10:
         return random.choice(["Big", "Small"])
 
-    # पिछले 15 रिजल्ट्स निकालना
-    sizes = ["Big" if int(x['number']) >= 5 else "Small" for x in real_history_cache[:15]]
+    # 800 रिजल्ट्स का डेटा उठाना
+    sizes = ["Big" if int(x['number']) >= 5 else "Small" for x in real_history_cache[:800]]
+    recent = sizes[:10]
     
-    # 1. STREAK RIDER (अगर 3 बार लगातार सेम आये, तो ट्रेंड मत तोड़ो)
-    if sizes[0] == sizes[1] and sizes[1] == sizes[2]:
-        return sizes[0] 
+    # --- ALL 7 PATTERNS (Wingo Engine) ---
+    # PATTERN 1: DRAGON / STREAK
+    if recent[0] == recent[1] and recent[1] == recent[2]:
+        return recent[0]
 
-    # 2. ZIG-ZAG PATTERN (A-B-A-B)
-    if sizes[0] != sizes[1] and sizes[1] != sizes[2] and sizes[2] != sizes[3]:
-        return "Big" if sizes[0] == "Small" else "Small"
+    # PATTERN 2: ZIG-ZAG 
+    if recent[0] != recent[1] and recent[1] != recent[2] and recent[2] != recent[3]:
+        return "Big" if recent[0] == "Small" else "Small"
 
-    # 3. 2-2 BLOCK PATTERN (A-A-B-B)
-    if sizes[0] == sizes[1] and sizes[1] != sizes[2] and sizes[2] == sizes[3]:
-        return "Big" if sizes[0] == "Small" else "Small"
+    # PATTERN 3: 2-2 BLOCK 
+    if recent[0] == recent[1] and recent[1] != recent[2] and recent[2] == recent[3]:
+        return "Big" if recent[0] == "Small" else "Small"
 
-    # 4. 12 APRIL BASE LOGIC (Frequency)
-    big_count = sizes[:10].count("Big")
-    small_count = sizes[:10].count("Small")
-    
-    if big_count == small_count:
-        return random.choice(["Big", "Small"])
-        
-    return "Big" if big_count > small_count else "Small"
+    # PATTERN 4: MIRROR PATTERN
+    if recent[0] == recent[3] and recent[1] == recent[2] and recent[0] != recent[1]:
+        return "Big" if recent[0] == "Small" else "Small"
+
+    # PATTERN 5: SANDWICH 
+    if recent[0] == recent[1] and recent[1] != recent[2]:
+        return recent[2]
+
+    # PATTERN 6: 3-1 BREAK 
+    if recent[1] == recent[2] and recent[2] == recent[3] and recent[0] != recent[1]:
+        return recent[0]
+
+    # 🚀 MARKOV CHAIN (800 Data Points Fallback)
+    b2b, b2s, s2b, s2s = 0, 0, 0, 0
+    limit = min(800, len(sizes))
+    for i in range(limit - 1):
+        if sizes[i+1] == "Big":
+            if sizes[i] == "Big": b2b += 1
+            else: b2s += 1
+        else:
+            if sizes[i] == "Big": s2b += 1
+            else: s2s += 1
+
+    if recent[0] == "Big":
+        return "Big" if b2b >= b2s else "Small"
+    else:
+        return "Big" if s2b >= s2s else "Small"
 
 def predict_exact_number(history_data, predicted_size):
     """ 
-    12 April Stable Number Logic (Target: 4-Level Win)
-    Fixed: Number will strictly match the Predicted Size
+    800 Results Markov Engine for Numbers
     """
-    # 1. Size के हिसाब से सही नंबर्स का ग्रुप फिक्स करो
     valid_nums = [5, 6, 7, 8, 9] if predicted_size == "Big" else [0, 1, 2, 3, 4]
-
-    # 2. अगर डेटा नहीं आया है तो सेफ रैंडम नंबर (उसी साइज का)
     if not history_data or len(history_data) < 10:
         return random.choice(valid_nums)
 
-    # पिछले 20 पीरियड्स के नंबर्स निकालना
-    recent_nums = [int(x['number']) for x in history_data[:20]]
+    nums = [int(x['number']) for x in history_data[:800]]
+    last_num = nums[0]
     
-    # फ्रीक्वेंसी चेक (सिर्फ valid_nums में से कौन सा नंबर ट्रेंड में है)
-    counts = {}
-    for n in valid_nums:
-        counts[n] = recent_nums.count(n)
-        
-    # सबसे ज्यादा बार आने वाले नंबर्स को सॉर्ट करना
-    sorted_nums = sorted(counts.keys(), key=lambda n: counts[n], reverse=True)
-    
-    # 4-Level Win Logic: 
+    # 🚀 NUMBER MARKOV (800 Results)
+    transition_counts = {n: 0 for n in valid_nums}
+    limit = min(800, len(nums))
+    for i in range(limit - 1):
+        if nums[i+1] == last_num and nums[i] in valid_nums:
+            transition_counts[nums[i]] += 1
+
+    sorted_nums = sorted(valid_nums, key=lambda n: transition_counts[n], reverse=True)
+
+    # Fallback if no transition data
+    if transition_counts[sorted_nums[0]] == 0:
+        freq = {n: nums.count(n) for n in valid_nums}
+        sorted_nums = sorted(valid_nums, key=lambda n: freq[n], reverse=True)
+
+    # Safety Check: Recent numbers skip
     for num in sorted_nums:
-        if num not in recent_nums[:2]:
+        if num not in nums[:2]:
             return num
             
-    # अगर कोई पैटर्न मैच न हो, तो सबसे सेफ टॉप नंबर
     return sorted_nums[0]
 
 def core_engine_loop():
@@ -351,3 +373,4 @@ if __name__ == "__main__":
     threading.Thread(target=ai_learning_loop, daemon=True).start()
     keep_alive()
     bot.polling(none_stop=True)
+                

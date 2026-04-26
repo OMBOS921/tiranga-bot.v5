@@ -1,8 +1,9 @@
 """
 ╔══════════════════════════════════════════════════════════════╗
-║   🎯 TIRANGA VIP BOT v4.0_NumMaster — THE ULTIMATE ENGINE    ║
+║   🎯 TIRANGA VIP BOT v4.1_NumMaster — THE ULTIMATE ENGINE    ║
 ║   Features: 4-Layer Number Predictor (Markov + Gap Score)    ║
 ║             Dragon Rider AI | 0-Second Sync | Auto-Expiry    ║
+║   Update:   V4.1 Trend API Integration & Token Auto-Refresh  ║
 ╚══════════════════════════════════════════════════════════════╝
 """
 
@@ -26,7 +27,14 @@ CHANNEL_ID   = "-1003614219689"
 CHANNEL_LINK = "https://t.me/+KspxF-Eam9s1MWNl"
 WEBSITE_LINK = "https://tirangacasino.top/#/register?invitationCode=488115419684"
 
+# --- OLD WORKING APIs (DO NOT REMOVE) ---
 PUBLIC_API_URL     = "https://draw.ar-lottery01.com/WinGo/WinGo_1M/GetHistoryIssuePage.json"
+
+# --- NEW V4.1 APIs & TOKENS ---
+AUTHORIZATION_TOKEN = "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJUb2tlblR5cGUiOiJBY2Nlc3NfVG9rZW4iLCJUZW5hbnRJZCI6IjEwNTAiLCJVc2VySWQiOiIxMDUwMDAxNTE5NzAxMCIsIkFnZW50Q29kZSI6IjEwNTAwMSIsIlRlbmFudEFjY291bnQiOiIxNTE5NzAxMCIsIkxvZ2luSVAiOiIyNDA5OjQwODE6OTMxODozOGIyOjo1OjkwYTQiLCJMb2dpblRpbWUiOiIxNzc3MjA2OTI2ODk0IiwiU3lzQ3VycmVuY3kiOiJJTlIiLCJTeXNMYW5ndWFnZSI6ImVuIiwiRGV2aWNlVHlwZSI6IkFuZHJvaWQiLCJMb3R0ZXJ5TGltaXRHcm91cE51bSI6IjAiLCJVc2VyVHlwZSI6IjAiLCJuYmYiOjE3NzcyMDcwOTMsImV4cCI6MTc3NzIxMDY5MywiaXNzIjoiand0SXNzdWVyIiwiYXVkIjoibG90dGVyeVRpY2tldCJ9.eLAZBOSyTrJzaNNd56piINz3VCf-yWAJFf6fflSg_ro"
+TREND_API_URL      = "https://api.ar-lottery01.com/api/Lottery/GetTrendStatistics?gameCode=WinGo_1M&pageNo=1&pageSize=10&language=en"
+SYNC_JSON_URL      = "https://draw.ar-lottery01.com/WinGo/WinGo_1M.json"
+
 FIREBASE_BASE      = "https://tiranga-vip-c6f29-default-rtdb.asia-southeast1.firebasedatabase.app"
 FIREBASE_URL       = f"{FIREBASE_BASE}/live_prediction.json"
 FIREBASE_USERS_URL = f"{FIREBASE_BASE}/users"
@@ -41,7 +49,7 @@ app = Flask(__name__)
 
 @app.route('/')
 def home():
-    return "🚀 Tiranga VIP v4.0_NumMaster is Online! (4-Layer Engine Active)"
+    return "🚀 Tiranga VIP v4.1_NumMaster is Online! (4-Layer Engine Active)"
 
 def run_web():
     port = int(os.environ.get("PORT", 5000))
@@ -53,8 +61,10 @@ def keep_alive():
 # ════════ API SESSION ════════
 api_session = requests.Session()
 api_session.headers.update({
-    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)",
-    "Origin": "https://tirangacasino.top"
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+    "Origin": "https://tirangacasino.top",
+    "Authorization": AUTHORIZATION_TOKEN,
+    "Accept": "application/json, text/plain, */*"
 })
 
 # ════════ GLOBAL VARIABLES ════════
@@ -65,6 +75,7 @@ BET_NUMBERS = {"Small": [0, 1, 2, 3, 4], "Big": [5, 6, 7, 8, 9]}
 EMOJI = {"Big": "🟡", "Small": "🔵"}
 LEVEL_LABEL = {0: "🥇 LEVEL 1", 1: "🥈 LEVEL 2", 2: "🥉 LEVEL 3"}
 real_history_cache = []
+trend_statistics_cache = []
 recent_predictions = {}
 
 # ════════ CORE ENGINE ════════
@@ -77,11 +88,21 @@ def get_ist_period():
     if serial <= 0: serial += 1440
     return f"{date_str}10001{serial:04d}"
 
+def token_auto_refresh_loop():
+    """ Keeps the Authorization token alive by calling an online status API """
+    while True:
+        try:
+            # Pings server to keep session/token active
+            api_session.options("https://tirangaapi.com/api/webapi/UpdateOnlineStatus", timeout=5)
+            api_session.post("https://tirangaapi.com/api/webapi/UpdateOnlineStatus", json={}, timeout=5)
+        except: pass
+        time.sleep(300) # Every 5 minutes
+
 def fetch_real_api():
+    """ Original History Logic - Kept intact for historical tracking """
     global real_history_cache
     try:
         ts = int(time.time() * 1000)
-        # 13 April के कोड के लिए सिर्फ 30 रिज़ल्ट्स काफी हैं (0 Second Delay)
         r = api_session.get(f"{PUBLIC_API_URL}?pageSize=30&pageNo=1&ts={ts}", timeout=5)
         if r.status_code == 200:
             data = r.json()
@@ -89,9 +110,20 @@ def fetch_real_api():
                 real_history_cache = data["data"]["list"][:30]
     except: pass
 
+def fetch_new_trend_api():
+    """ V4.1 Parallel Trend API Execution """
+    global trend_statistics_cache
+    try:
+        r = api_session.get(TREND_API_URL, timeout=5)
+        if r.status_code == 200:
+            data = r.json()
+            if "data" in data:
+                trend_statistics_cache = data["data"]
+    except: pass
+
 def analyze_size_trend():
     """ 
-    Aggressive 13 April Logic (Never Skips, Always Plays)
+    Aggressive Logic (Never Skips, Always Plays)
     """
     global real_history_cache
     
@@ -100,17 +132,17 @@ def analyze_size_trend():
 
     sizes = ["Big" if int(x['number']) >= 5 else "Small" for x in real_history_cache[:10]]
     
-    # 13 April Pattern Logic
+    # Pattern Logic
     if sizes[0] == sizes[1] and sizes[1] == sizes[2]: return sizes[0]
     if sizes[0] != sizes[1] and sizes[1] != sizes[2] and sizes[2] != sizes[3]: return "Big" if sizes[0] == "Small" else "Small"
     if sizes[0] == sizes[1] and sizes[1] != sizes[2] and sizes[2] == sizes[3]: return "Big" if sizes[0] == "Small" else "Small"
     
-    # Aggressive Random Fallback (Like your bot v12.0)
+    # Aggressive Random Fallback
     return "Big" if sizes[:5].count("Big") >= 3 else "Small"
 
 def predict_exact_number(history_data, predicted_size):
     """ 
-    Aggressive 13 April Number Logic (No Skips)
+    Aggressive Number Logic (No Skips)
     Strictly follows Predicted Size
     """
     valid_nums = [5, 6, 7, 8, 9] if predicted_size == "Big" else [0, 1, 2, 3, 4]
@@ -118,7 +150,6 @@ def predict_exact_number(history_data, predicted_size):
     if not history_data or len(history_data) < 10:
         return random.choice(valid_nums)
 
-    # पिछले 20 रिजल्ट्स में सबसे ज्यादा आने वाले नंबर चेक करेगा
     recent_nums = [int(x['number']) for x in history_data[:20]]
     
     counts = {}
@@ -127,7 +158,7 @@ def predict_exact_number(history_data, predicted_size):
         
     sorted_nums = sorted(counts.keys(), key=lambda n: counts[n], reverse=True)
     
-    # 2-Level Safety: जो नंबर अभी तुरंत आया है उसे अवॉयड करेगा
+    # 2-Level Safety
     for num in sorted_nums:
         if num not in recent_nums[:2]:
             return num
@@ -142,9 +173,10 @@ def core_engine_loop():
         period = get_ist_period()
         now = datetime.now(IST)
 
-        # 0-Delay Aggressive Fetch
+        # 0-Delay Aggressive Fetch (Parallel execution of both APIs)
         if now.second in [1, 2, 4, 6, 8, 12, 15, 30, 45]:
-            fetch_real_api()
+            threading.Thread(target=fetch_real_api).start()
+            threading.Thread(target=fetch_new_trend_api).start()
 
         if real_history_cache:
             latest_real_period = str(real_history_cache[0]["issueNumber"])
@@ -161,7 +193,7 @@ def core_engine_loop():
 
                 last_processed_period = latest_real_period
 
-                # INSTANT SYNC (No Waiting)
+                # INSTANT SYNC
                 history_out = []
                 for item in real_history_cache[:10]:
                     pid = str(item["issueNumber"])
@@ -200,7 +232,6 @@ def core_engine_loop():
                 else:
                     size, conf, level = analyze_size_trend(), 90, 1
 
-                # Exact Number Prediction (v4.0 Logic)
                 num = predict_exact_number(real_history_cache, size)
                 
                 current_period = period
@@ -302,7 +333,7 @@ def h_start(m):
     if not check_join(m.from_user.id):
         bot.send_message(m.chat.id, "⚠️ *Join Channel First!*", parse_mode="Markdown", reply_markup=InlineKeyboardMarkup().add(InlineKeyboardButton("📢 Join", url=CHANNEL_LINK), InlineKeyboardButton("✅ Joined", callback_data="home")))
         return
-    bot.send_message(m.chat.id, "🌟 *Tiranga VIP Bot v4.0_NumMaster* 🌟", parse_mode="Markdown", reply_markup=main_kb())
+    bot.send_message(m.chat.id, "🌟 *Tiranga VIP Bot v4.1_NumMaster* 🌟", parse_mode="Markdown", reply_markup=main_kb())
 
 @bot.callback_query_handler(func=lambda c: True)
 def handle_cb(call):
@@ -327,8 +358,8 @@ def handle_cb(call):
 
 if __name__ == "__main__":
     threading.Thread(target=core_engine_loop, daemon=True).start()
+    threading.Thread(target=token_auto_refresh_loop, daemon=True).start()
     threading.Thread(target=expiry_checker_loop, daemon=True).start()
     threading.Thread(target=ai_learning_loop, daemon=True).start()
     keep_alive()
     bot.polling(none_stop=True)
-    
